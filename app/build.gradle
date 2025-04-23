@@ -3,7 +3,7 @@ plugins {
     id 'org.openjfx.javafxplugin' version '0.1.0'
 }
 version = '1.0.1'
-def cmsg = "v1.0.1, added github auto to build.gradle"
+def cmsg = "Version v${version}"
 repositories {
     mavenCentral()
 }
@@ -96,10 +96,18 @@ tasks.named('build') {
 }
 task upload(type: Exec) {
     dependsOn build
-    commandLine 'bash', '-c', "git add . && git commit -m '${cmsg}' && git tag ${version} && git push origin ${version} && git push origin main"
+    commandLine 'bash', '-c', "git add . && git commit -m '${cmsg}' && git tag -f ${version} && git push -f origin ${version} && git push origin main"
 }
 
 task publish(type: Exec) {
     dependsOn upload
+    doFirst {
+        println '⚠️ WARNING: You are about to create a GitHub release. Continue? (y/n)'
+        def scanner = new Scanner(System.in)
+        def answer = scanner.nextLine()
+        if (answer != 'y') {
+            throw new GradleException('Publish aborted by user.')
+        }
+    }
     commandLine 'gh', 'release', 'create', version, 'task.tar.gz', '--generate-notes', '--latest=true'
 }
