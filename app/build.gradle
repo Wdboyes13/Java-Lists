@@ -2,7 +2,7 @@ plugins {
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
 }
-version = '1.0.3'
+version = '1.0.4'
 def cmsg = "Version v${version}"
 repositories {
     mavenCentral()
