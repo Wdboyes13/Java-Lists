@@ -2,7 +2,8 @@ plugins {
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
 }
-
+version = '1.0.0'
+def cmsg = "v1.0.0 commit msg"
 repositories {
     mavenCentral()
 }
@@ -92,4 +93,13 @@ tasks.withType(Jar).configureEach {
 // ✨ Make build depend on jar, copyJavafxLibs, and runPackScript
 tasks.named('build') {
     dependsOn 'mkJar', 'copyJavafxLibs', 'runPackScript'
+}
+task upload(type: Exec) {
+    dependsOn build
+    commandLine 'bash', '-c', "git add . && git commit -m '${cmsg}' && git tag ${version} && git push origin ${version} && git push origin main"
+}
+
+task publish(type: Exec) {
+    dependsOn upload
+    commandLine 'gh', 'release', 'create', version, 'task.tar.gz', '--generate-notes', '--latest=true'
 }
