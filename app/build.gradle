@@ -1,0 +1,95 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.guava
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.13.0'
+    def javafxVersion = '21'
+    def javafxModules = ['base', 'graphics', 'controls', 'fxml']
+
+    javafxModules.each { module ->
+        ['win', 'linux', 'mac'].each { platform ->
+            runtimeOnly "org.openjfx:javafx-${module}:${javafxVersion}:${platform}"
+        }
+    }
+}
+
+testing {
+    suites {
+        test {
+            useJUnitJupiter('5.11.3')
+        }
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+javafx {
+    version = "21"
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+application {
+    mainClass = 'org.william.App'
+}
+
+tasks.register('mkJar', Jar) {
+    dependsOn classes
+    group = 'build'
+    description = 'Creates fat JAR with dependencies'
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveClassifier.set('all')
+
+    manifest {
+        attributes('Main-Class': application.mainClass.get())
+    }
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    from sourceSets.main.output
+}
+
+tasks.register('copyJavafxLibs', Copy) {
+    group = 'build'
+    description = 'Copies JavaFX libraries to build dir'
+
+    from {
+        configurations.runtimeClasspath.filter {
+            it.name.contains('javafx') && it.name.endsWith('.jar')
+        }
+    }
+    into "$buildDir/javafx-libs"
+}
+
+tasks.register('runPackScript', Exec) {
+    dependsOn 'mkJar', 'copyJavafxLibs'
+    group = 'build'
+    description = 'Runs the packaging script to create tarball'
+
+    executable 'bash'
+    args '/Users/william/coding/morning/package.sh'
+}
+
+// Add the Main-Class to all JARs
+tasks.withType(Jar).configureEach {
+    manifest {
+        attributes('Main-Class': application.mainClass.get())
+    }
+}
+
+// ✨ Make build depend on jar, copyJavafxLibs, and runPackScript
+tasks.named('build') {
+    dependsOn 'mkJar', 'copyJavafxLibs', 'runPackScript'
+}
